@@ -1,19 +1,20 @@
 #pragma once
 
-#include <vector>
+#include <map>
 #include <string>
+#include <thread>
 
 #include "IObserver.h"
 
-class ISubject
+class ISubjectMT
 {
 public:
-    virtual ~ISubject() = default;
+    virtual ~ISubjectMT() = default;
 
-    void Attach( IObserver* obs );
-    void Detach( IObserver* obs );
+    void Attach( IObserverMT* obs );
+    void Detach( IObserverMT* obs );
     virtual void Notify( const std::string& cmd );
 
 protected:
-    std::vector<IObserver*> m_Obs;
+    std::map<IObserverMT*, std::thread> m_obs;
 };

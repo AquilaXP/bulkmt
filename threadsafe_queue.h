@@ -25,8 +25,10 @@ public:
 
     void push( T new_value )
     {
-        lock_m lk( mut );
-        data_queue.push( std::move(new_value) );
+        {
+            lock_m lk( mut );
+            data_queue.push( std::move( new_value ) );
+        }
         data_cond.notify_all();
     }
 
@@ -34,7 +36,6 @@ public:
     {
         ulock_m lk( mut );
         data_cond.wait( lk, [this]{
-            std::cout << std::this_thread::get_id() << std::endl;
             return !data_queue.empty();
         } );
         value = data_queue.front();

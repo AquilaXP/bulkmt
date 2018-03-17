@@ -14,7 +14,7 @@ class AppenderCmd;
 class IState
 {
 public:
-    IState( ObserverBase* ob_base );
+    IState( ObserverBaseMT* ob_base );
     virtual ~IState() = default;
     virtual void AppendCmd( AppenderCmd* context, const std::string& cmd ) = 0;
 protected:
@@ -26,7 +26,7 @@ protected:
     }
 
     uint32_t m_num_cmd = 0;
-    ObserverBase* m_ob = nullptr;
+    ObserverBaseMT* m_ob = nullptr;
 };
 
 /// Класс для добавления комманд.
@@ -43,7 +43,7 @@ public:
         STATE_WAIT_END_BLOCK = 1
     };
 
-    AppenderCmd( ObserverBase* ob_base, size_t N );
+    AppenderCmd( ObserverBaseMT* ob_base, size_t N );
     AppenderCmd( const AppenderCmd& ) = delete;
     AppenderCmd& operator = ( const AppenderCmd& ) = delete;
 
@@ -59,7 +59,7 @@ private:
 class StateWaitEndBlock : public IState
 {
 public:
-    StateWaitEndBlock( ObserverBase* ob_base );
+    StateWaitEndBlock( ObserverBaseMT* ob_base );
     void AppendCmd( AppenderCmd* context, const std::string& cmd ) override;
 private:
     void Uplvl();
@@ -74,7 +74,7 @@ private:
 class StateWaitNCmd : public IState
 {
 public:
-    StateWaitNCmd( ObserverBase* ob_base, size_t N );
+    StateWaitNCmd( ObserverBaseMT* ob_base, size_t N );
     ~StateWaitNCmd();
     void AppendCmd( AppenderCmd* conext, const std::string& cmd ) override;
 private:

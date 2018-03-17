@@ -18,6 +18,11 @@ set(HDR
     IObserver.h
     ISubject.h
     ObserverBase.h
+    threadsafe_queue.h
+    ConsoleObserver.h
+    FileObserver.h
+    Statistic.h
+    ThreadObserver.h
     )
 
 #Program bulkmt
@@ -31,7 +36,7 @@ set_target_properties(bulkmt PROPERTIES
 set_target_properties( bulkmt PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED ON
-    COMPILE_OPTIONS -Wall
+   # COMPILE_OPTIONS -Wall
 )
 
 install(TARGETS bulkmt RUNTIME DESTINATION bin)

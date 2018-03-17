@@ -3,7 +3,7 @@
 #include <memory>
 #include <cassert>
 
-IState::IState( ObserverBase* ob_base )
+IState::IState( ObserverBaseMT* ob_base )
     : m_ob( ob_base )
 {
     assert( ob_base );
@@ -19,7 +19,7 @@ void IState::AppendPackCmd( const std::string& cmd )
     m_ob->AppendPackCmd( cmd );
 }
 
-AppenderCmd::AppenderCmd( ObserverBase* ob_base, size_t N )
+AppenderCmd::AppenderCmd( ObserverBaseMT* ob_base, size_t N )
 {
     m_states.emplace_back( std::unique_ptr<IState>( new StateWaitNCmd( ob_base, N ) ) );
     m_states.emplace_back( std::unique_ptr<IState>( new StateWaitEndBlock( ob_base ) ) );
@@ -42,7 +42,7 @@ IState* AppenderCmd::GetState( State_T id_state )
     return m_states[size_t( id_state )].get();
 }
 
-StateWaitEndBlock::StateWaitEndBlock( ObserverBase* ob_base )
+StateWaitEndBlock::StateWaitEndBlock( ObserverBaseMT* ob_base )
     : IState( ob_base )
 {
 }
@@ -93,7 +93,7 @@ void StateWaitEndBlock::CopyCmd( const std::string& cmd )
     ++m_num_cmd;
 }
 
-StateWaitNCmd::StateWaitNCmd( ObserverBase* ob_base, size_t N )
+StateWaitNCmd::StateWaitNCmd( ObserverBaseMT* ob_base, size_t N )
     : IState( ob_base ), m_N(N)
 {
 
