@@ -32,7 +32,6 @@ public:
 
         // начинаем остановку всех потоков,
         // каждый поток возьмет по паку команд и остановится
-        m_stop = true;
         for( auto& a : m_assistans )
         {
             m_pack_cmd.push( std::make_tuple( pack_cmd_t(), 0 ) );
@@ -73,7 +72,7 @@ private:
             while( true )
             {
                 auto p = m_pack_cmd.wait_and_pop();
-                if( m_stop )
+                if( std::get<0>( *p ).empty() )
                     break;
 
                 if( m_burden )
@@ -110,7 +109,6 @@ private:
     }
 
     std::function<void()> m_burden;
-    std::atomic_bool m_stop = { false };
     std::vector<std::thread> m_assistans;
     // храним в очереди: число комманд в паке, время первой комманыд,  пак комманд
     threadsafe_queue < std::tuple < pack_cmd_t, uint64_t > > m_pack_cmd;
