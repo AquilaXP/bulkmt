@@ -23,10 +23,17 @@ set(HDR
     FileObserver.h
     Statistic.h
     ThreadObserver.h
+    ConsoleSubject.h
+    ConsoleSubjectMT.h
+    FileObserverMT.h
+    IStreamSubject.h
     )
 
 #Program bulkmt
 add_executable(bulkmt ${SRC} ${HDR})
+
+#Program generator file cmd by test
+add_executable(gentest GeneratorFileCmd.cpp )
 
 set_target_properties(bulkmt PROPERTIES
     INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}

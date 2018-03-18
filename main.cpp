@@ -3,25 +3,11 @@
 #include <sstream>
 
 #include "ISubject.h"
+#include "IStreamSubject.h"
 
-#include "FileObserver.h"
+#include "FileObserverMT.h"
 #include "ConsoleObserver.h"
-
-/// Издатель
-class ConsoleSubject : public ISubjectMT
-{
-public:
-    void Run()
-    {      
-        std::string cmd;
-        while( std::getline( std::cin, cmd ) )
-        {
-            if( cmd.empty() )
-                return;
-            Notify( cmd );
-        }
-    }
-};
+#include "ThreadObserver.h"
 
 
 int main( int ac, char* av[] )
@@ -33,13 +19,17 @@ int main( int ac, char* av[] )
     }
     int32_t N = std::atoi(av[1]);
 
-    ConsoleObserver co( N );
-    FileObserver fo( N );
-    ConsoleSubject cs;
-    
-    cs.Attach( &co );
-    cs.Attach( &fo );
-    cs.Run();
-
+    {
+        ConsoleObserver co( N );
+        ThreadObserver to( &co );
+        to.Start();
+        FileObserverMT fo( N, 2 );
+        std::unique_ptr<IStreamSubject> s( new IStreamSubject );
+        s->Init( N );
+        s->Attach( &to );
+        s->Attach( &fo );
+        std::ifstream f( "test_cmd1.txt" );
+        s->Run( f );
+    }
     return 0;
 }

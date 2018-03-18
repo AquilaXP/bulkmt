@@ -7,23 +7,17 @@
 
 #include "ObserverBase.h"
 #include "IState.h"
-#include "threadsafe_queue.h"
 
-/// Наблюдатель сохраняющий в файл
-class FileObserver : public ObserverBaseMT
+/// РќР°Р±Р»СЋРґР°С‚РµР»СЊ СЃРѕС…СЂР°РЅСЏСЋС‰РёР№ РІ С„Р°Р№Р»
+class FileObserver : public ObserverBase
 {
 public:
     FileObserver( size_t N )
         : m_ac( this, N )
     {}
-    void RunPrivate() override
+    void Update( const std::string& cmd ) override
     {
-        std::string cmd;
-        while( true )
-        {
-            m_queue_cmd.wait_and_pop( cmd );
-            m_ac.AppendCmd( cmd );
-        }
+        m_ac.AppendCmd( cmd );
     }
     void EventAddCmdToBlock( const std::string& cmd, uint32_t num_cmd ) override
     {
@@ -39,7 +33,7 @@ public:
             m_name_file = ss.str();
         }
     }
-    void AppendPackCmd( const std::string& pack_cmd )
+    void AppendPackCmd( const std::string& pack_cmd, uint32_t count_cmd ) override
     {
         std::ofstream f( m_name_file, std::ios::binary );
         f << "bulk: " << pack_cmd << std::endl;

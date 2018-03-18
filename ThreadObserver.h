@@ -7,11 +7,16 @@
 #include "IObserver.h"
 #include "threadsafe_queue.h"
 
-class ThreadObserver : public IObserverMT
+class ThreadObserver : public IObserver
 {
 public:
-    ThreadObserver( IObserverMT* obs ) : m_obs(obs)
+    ThreadObserver( IObserver* obs ) : m_obs(obs)
     {}
+    ~ThreadObserver()
+    {
+        Stop();
+        Wait();
+    }
     void Start()
     {
         if( m_thread.joinable() )
@@ -19,6 +24,10 @@ public:
 
         m_stop = false;
         m_thread = std::thread( &ThreadObserver::Run, this );
+    }
+    IObserver* GetObserver() const
+    {
+        return m_obs;
     }
     void Stop()
     {
@@ -30,7 +39,7 @@ public:
         if( m_thread.joinable() )
             m_thread.join();
     }
-    void Update( const std::string& cmd )
+    void Update( const std::string& cmd ) override
     {
         m_queue_cmd.push( cmd );
     }
@@ -38,13 +47,16 @@ private:
     void Run()
     {
         assert( m_obs );
-        auto cmd = m_queue_cmd.wait_and_pop();
-        if( m_stop == true )
-            return;
-        m_obs->Update( *cmd );
+        while( true )
+        {
+            auto cmd = m_queue_cmd.wait_and_pop();
+            if( m_stop == true )
+                break;
+            m_obs->Update( *cmd );
+        }
     }
 
-    IObserverMT* m_obs = nullptr;
+    IObserver* m_obs = nullptr;
     std::atomic_bool m_stop = false;
     std::thread m_thread;
     threadsafe_queue<std::string> m_queue_cmd;

@@ -2,41 +2,27 @@
 
 #include <algorithm>
 
-void ISubjectMT::Attach( IObserverMT* obs )
+void ISubject::Attach( IObserver* obs )
 {
-    try
-    {
-        m_obs.insert( { obs, std::thread( &IObserverMT::Run, obs ) } );
-    }
-    catch( const std::exception& )
-    {
-        m_obs.erase( obs );
-    }      
+    m_obs.push_back( obs );
 }
 
-void ISubjectMT::Detach( IObserverMT* obs )
+void ISubject::Detach( IObserver* obs )
 {
-    auto o = m_obs.find( obs );
-    if( o != m_obs.end() )
-    {
-        o->first->Update( "" );
-        if( o->second.joinable() )
-            o->second.join();
-        m_obs.erase( o );
-    }
+    m_obs.erase( std::find( m_obs.begin(), m_obs.end(), obs ) );
 }
 
-void ISubjectMT::Notify( const std::string& cmd )
+void ISubject::Notify( const std::string& cmd )
 {
     for( auto& o : m_obs )
     {
         try
         {
-            o.first->Update( cmd );
+            o->Update( cmd );
         }
         catch( ... )
         {
-            // кому-то сообщаем
+            // РєРѕРјСѓ-С‚Рѕ СЃРѕРѕР±С‰Р°РµРј
         }
     }
 }

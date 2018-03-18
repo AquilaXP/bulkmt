@@ -14,19 +14,17 @@ class AppenderCmd;
 class IState
 {
 public:
-    IState( ObserverBaseMT* ob_base );
+    IState( ObserverBase* ob_base );
     virtual ~IState() = default;
     virtual void AppendCmd( AppenderCmd* context, const std::string& cmd ) = 0;
+    virtual void Flush() = 0;
 protected:
     void ChangeState( AppenderCmd* context, IState* next_state );
-    void AppendPackCmd( const std::string& cmd );
-    void EventAddCmdtoBlock( const std::string& cmd, uint32_t num_cmd )
-    {
-
-    }
+    void AppendPackCmd( const std::string& pack_cmd, uint32_t count );
+    void EventAddCmdtoBlock( const std::string& cmd, uint32_t num_cmd ) {}
 
     uint32_t m_num_cmd = 0;
-    ObserverBaseMT* m_ob = nullptr;
+    ObserverBase* m_ob = nullptr;
 };
 
 /// Класс для добавления комманд.
@@ -43,13 +41,14 @@ public:
         STATE_WAIT_END_BLOCK = 1
     };
 
-    AppenderCmd( ObserverBaseMT* ob_base, size_t N );
+    AppenderCmd( ObserverBase* ob_base, size_t N );
     AppenderCmd( const AppenderCmd& ) = delete;
     AppenderCmd& operator = ( const AppenderCmd& ) = delete;
 
     void AppendCmd( const std::string& cmd );
     void ChangeState( IState* next_state );
     IState* GetState( State_T id_state );
+    void Flush();
 private:
     std::vector< std::unique_ptr<IState> > m_states;
     IState* m_state = nullptr;
@@ -59,8 +58,9 @@ private:
 class StateWaitEndBlock : public IState
 {
 public:
-    StateWaitEndBlock( ObserverBaseMT* ob_base );
+    StateWaitEndBlock( ObserverBase* ob_base );
     void AppendCmd( AppenderCmd* context, const std::string& cmd ) override;
+    void Flush() override {}
 private:
     void Uplvl();
     void Downlvl( AppenderCmd* context );
@@ -74,12 +74,11 @@ private:
 class StateWaitNCmd : public IState
 {
 public:
-    StateWaitNCmd( ObserverBaseMT* ob_base, size_t N );
+    StateWaitNCmd( ObserverBase* ob_base, size_t N );
     ~StateWaitNCmd();
     void AppendCmd( AppenderCmd* conext, const std::string& cmd ) override;
+    void Flush() override;
 private:
-    void Flush();
-
-    int32_t m_N = 0;    
+    int32_t m_N = 0;
     std::string m_buffer;
 };
