@@ -42,6 +42,11 @@ set_target_properties( bulkmt PROPERTIES
     CXX_STANDARD_REQUIRED ON
     COMPILE_OPTIONS -Wall
 )
+if(UNIX)
+set_target_properties( bulkmt PROPERTIES
+    COMPILE_OPTIONS -Wl --no-as-needed
+)
+endif(UNIX)
 
 install(TARGETS bulkmt RUNTIME DESTINATION bin)
 
