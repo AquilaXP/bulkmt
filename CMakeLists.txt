@@ -46,6 +46,7 @@ if(UNIX)
 set_target_properties( bulkmt PROPERTIES
     COMPILE_OPTIONS -pthread
 )
+target_link_libraries( bulkmt pthread )
 endif(UNIX)
 
 install(TARGETS bulkmt RUNTIME DESTINATION bin)
