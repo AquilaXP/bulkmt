@@ -48,7 +48,7 @@ public:
         data_cond.wait( lk, [this]{
             return !data_queue.empty();
         } );
-        std::unique_ptr<T> res( std::make_unique<T>( data_queue.front() ) );
+        std::unique_ptr<T> res( std::unique_ptr<T>( new T(data_queue.front()) ) );
         data_queue.pop();
         return res;
     }
@@ -74,7 +74,7 @@ public:
             return std::unique_ptr<T>();
         }
 
-        std::unique_ptr<T> res( std::make_unique<T>( data_queue.front() ) );
+        std::unique_ptr<T> res( std::unique_ptr<T>( new T( data_queue.front() ) ) );
         data_queue.pop();
         return res;
     }

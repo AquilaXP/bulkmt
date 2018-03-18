@@ -64,7 +64,7 @@ private:
     }
 
     IObserver* m_obs = nullptr;
-    std::atomic_bool m_stop = false;
+    std::atomic_bool m_stop = { false };
     std::thread m_thread;
     threadsafe_queue<std::pair<pack_cmd_t, uint64_t>> m_queue_cmd;
 };
