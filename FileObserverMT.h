@@ -6,6 +6,7 @@
 #include <chrono>
 #include <atomic>
 #include <iostream>
+#include <functional>
 
 #include "Statistic.h"
 #include "threadsafe_queue.h"
@@ -47,7 +48,10 @@ public:
     {
         m_pack_cmd.push( std::make_tuple( pack_cmd, time_first_cmd_ms ) );
     }
-
+    void SetBurden( std::function<void()> b )
+    {
+        m_burden = b;
+    }
 private:
     void RunT()
     {
@@ -71,6 +75,8 @@ private:
                 if( m_stop )
                     break;
 
+                if( m_burden )
+                    m_burden();
                 // Обновляем статистику потока
                 count_block += 1;
                 count_cmd += std::get<0>( *p ).size();
@@ -100,7 +106,8 @@ private:
         }
     }
 
-    std::atomic_bool m_stop = false;
+    std::function<void()> m_burden;
+    std::atomic_bool m_stop = { false };
     std::vector<std::thread> m_assistans;
     // храним в очереди: число комманд в паке, время первой комманыд,  пак комманд
     threadsafe_queue < std::tuple < pack_cmd_t, uint64_t > > m_pack_cmd;
