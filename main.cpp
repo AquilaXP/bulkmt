@@ -27,8 +27,7 @@ int main( int ac, char* av[] )
         std::unique_ptr<IStreamSubject> s( new IStreamSubject( N ) );
         s->Attach( &to );
         s->Attach( &fo );
-        std::ifstream f( "test_cmd1.txt" );
-        s->Run( f );
+        s->Run( std::cin );
     }
     return 0;
 }
