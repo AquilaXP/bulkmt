@@ -44,7 +44,7 @@ set_target_properties( bulkmt PROPERTIES
 )
 if(UNIX)
 set_target_properties( bulkmt PROPERTIES
-    COMPILE_OPTIONS -Wl --no-as-needed
+    COMPILE_OPTIONS -pthread
 )
 endif(UNIX)
 
