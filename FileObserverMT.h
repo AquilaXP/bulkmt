@@ -64,6 +64,7 @@ private:
             // Для формирования имени файла
             std::string name_file;
             std::string thread_id;
+            uint32_t unique_number = 0;
             {
                 std::stringstream ss;
                 ss << std::this_thread::get_id();
@@ -87,7 +88,9 @@ private:
                 name_file += std::to_string( std::get<1>( *p ) );
                 name_file += "_";
                 name_file += thread_id;
+                name_file += "_" + std::to_string( unique_number );
                 name_file += ".log";
+                ++unique_number;
 
                 // записываем пак комманд
                 std::ofstream f( name_file, std::ios::binary );
