@@ -10,23 +10,20 @@ set(SRC
     main.cpp
     IState.cpp
     ISubject.cpp
-    ObserverBase.cpp
     )
 
 set(HDR
     IState.h
     IObserver.h
     ISubject.h
-    ObserverBase.h
     threadsafe_queue.h
     ConsoleObserver.h
     FileObserver.h
     Statistic.h
     ThreadObserver.h
-    ConsoleSubject.h
-    ConsoleSubjectMT.h
     FileObserverMT.h
     IStreamSubject.h
+    pack_cmd.h
     )
 
 #Program bulkmt
@@ -43,7 +40,7 @@ set_target_properties(bulkmt PROPERTIES
 set_target_properties( bulkmt PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED ON
-   # COMPILE_OPTIONS -Wall
+    COMPILE_OPTIONS -Wall
 )
 
 install(TARGETS bulkmt RUNTIME DESTINATION bin)

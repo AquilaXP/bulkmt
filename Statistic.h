@@ -6,19 +6,17 @@
 class Statistic
 {
 public:
-    void Init( uint32_t min_count )
+    void AddLine( uint32_t count = 1 )
     {
-        m_min_count = min_count;
+        m_count_line += count;
     }
-    void Update( const std::string& cmd )
+    void AddCmd( uint32_t count = 1 )
     {
-        ++m_count_line;
-        if( cmd == "{" )
-            OpenBlock();
-        else if( cmd == "}" )
-            CloseBlock();
-        else
-            Cmd();
+        m_count_cmd += count;
+    }
+    void AddBlock( uint32_t count = 1 )
+    {
+        m_count_block += count;
     }
     uint32_t GetCountCmd() const
     {
@@ -32,41 +30,15 @@ public:
     {
         return m_count_line;
     }
+
+    void Print( std::ostream& os ) const
+    {
+        os <<
+            "Count line = " << GetCountLine() << '\n' <<
+            "Count cmd = " << GetCountCmd() << '\n' <<
+            "Count block = " << GetCountBlock() << std::endl;
+    }
 private:
-    void OpenBlock()
-    {
-        if( m_lvl_block == 0 && m_current_count_cmd > 0 )
-        {
-            ++m_count_block;
-            m_current_count_cmd = 0;
-        }
-        ++m_lvl_block;
-    }
-    void CloseBlock()
-    {
-        --m_lvl_block;
-        if( m_lvl_block == 0 )
-        {
-            ++m_count_block;
-            m_current_count_cmd = 0;
-        }
-    }
-    void Cmd()
-    {
-        ++m_count_cmd;
-        if( m_lvl_block == 0 )
-        {
-            ++m_current_count_cmd;
-            if( m_current_count_cmd >= m_min_count )
-            {
-                m_current_count_cmd = 0;
-                ++m_count_block;
-            }
-        }
-    }
-    uint32_t m_current_count_cmd = 0;
-    uint32_t m_min_count = 0;
-    uint32_t m_lvl_block = 0;
     uint32_t m_count_block = 0;
     uint32_t m_count_cmd = 0;
     uint32_t m_count_line = 0;

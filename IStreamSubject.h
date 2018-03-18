@@ -7,24 +7,24 @@
 #include <thread>
 
 #include "ISubject.h"
-#include "Statistic.h"
+#include "IState.h"
 
 /// Издатель
 class IStreamSubject : public ISubject
 {
 public:
-    void Init( uint32_t count_cmd_by_block )
+    IStreamSubject( size_t N )
+        : m_ac(this, N)
     {
-        m_stat.Init( count_cmd_by_block );
     }
     void Run( std::istream& istr )
     {
         std::string cmd;
         while( std::getline( istr, cmd ) )
         {
-            Notify( cmd );
-            m_stat.Update( cmd );
+            m_ac.AppendCmd( cmd );
         }
+        m_ac.Flush();
         std::this_thread::sleep_for( std::chrono::seconds( 1 ) );
         PrintStat();
     }
@@ -32,12 +32,11 @@ private:
     void PrintStat()
     {
         std::stringstream ss;
-        ss << "main: \n"
-            "Count line = " << m_stat.GetCountLine() << '\n' <<
-            "Count cmd = " << m_stat.GetCountCmd() << '\n' <<
-            "Count block = " << m_stat.GetCountBlock() << std::endl;
+        ss << "main: \n";
+        m_ac.GetStat().Print(ss);
+
         std::cout << ss.str();
     }
 
-    Statistic m_stat;
+    AppenderCmd m_ac;
 };

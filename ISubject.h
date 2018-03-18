@@ -12,7 +12,7 @@ public:
 
     virtual void Attach( IObserver* obs );
     virtual void Detach( IObserver* obs );
-    virtual void Notify( const std::string& cmd );
+    virtual void Notify( const pack_cmd_t& pack_cmd, uint64_t time_first_cmd_ms );
 
 protected:
     std::vector<IObserver*> m_obs;

@@ -1,11 +1,10 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include "pack_cmd.h"
 
 class IObserver
 {
 public:
     virtual ~IObserver() = default;
-    virtual void Update( const std::string& cmd ) = 0;
+    virtual void Update( const pack_cmd_t& pack_cmd, uint64_t time_first_cmd_ms ) = 0;
 };

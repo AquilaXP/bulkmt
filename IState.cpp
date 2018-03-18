@@ -1,35 +1,66 @@
 #include "IState.h"
 
+#include <chrono>
 #include <memory>
 #include <cassert>
 
-IState::IState( ObserverBase* ob_base )
-    : m_ob( ob_base )
+// ===========================================================
+//                  IState
+// ===========================================================
+IState::IState( AppenderCmd* context )
+    : m_context(context)
 {
-    assert( ob_base );
 }
 
-void IState::ChangeState( AppenderCmd* context, IState* next_state )
+inline void IState::UpdateCountCmd( uint32_t add_count )
 {
-    context->ChangeState( next_state );
+    m_context->m_stat.AddCmd( add_count );
 }
 
-void IState::AppendPackCmd( const std::string& cmd, uint32_t count )
+void IState::ChangeState( IState* next_state )
 {
-    m_ob->AppendPackCmd( cmd, count );
+    m_context->ChangeState( next_state );
 }
 
-AppenderCmd::AppenderCmd( ObserverBase* ob_base, size_t N )
+void IState::SetTime()
 {
-    m_states.emplace_back( std::unique_ptr<IState>( new StateWaitNCmd( ob_base, N ) ) );
-    m_states.emplace_back( std::unique_ptr<IState>( new StateWaitEndBlock( ob_base ) ) );
+    using namespace std::chrono;
+
+    m_time_first_cmd_ms =
+        duration_cast<milliseconds>( system_clock::now().time_since_epoch() ).count();
+}
+
+uint64_t IState::GetTime() const
+{
+    return m_time_first_cmd_ms;
+}
+// ===========================================================
+//                  AppenderCmd
+// ===========================================================
+AppenderCmd::AppenderCmd( ISubject* subject, size_t N )
+    : m_subject(subject)
+{
+    m_states.emplace_back( std::unique_ptr<IState>( new StateWaitNCmd( this, N ) ) );
+    m_states.emplace_back( std::unique_ptr<IState>( new StateWaitEndBlock( this ) ) );
 
     m_state = m_states[size_t( STATE_WAIT_N_CMD )].get();
 }
 
-void AppenderCmd::AppendCmd( const std::string& cmd )
+void AppenderCmd::AppendCmd( const cmd_t& cmd )
 {
-    m_state->AppendCmd( this, cmd );
+    m_stat.AddLine();
+    m_state->AppendCmd( cmd );
+}
+
+void AppenderCmd::NotifyPackCmd( const pack_cmd_t& pack_cmd, uint64_t time_first_cmd_ms )
+{
+    m_stat.AddBlock();
+    m_subject->Notify( pack_cmd, time_first_cmd_ms );
+}
+
+void AppenderCmd::Flush()
+{
+    m_state->Flush();
 }
 
 void AppenderCmd::ChangeState( IState* next_state )
@@ -42,17 +73,20 @@ IState* AppenderCmd::GetState( State_T id_state )
     return m_states[size_t( id_state )].get();
 }
 
-void AppenderCmd::Flush()
+const Statistic& AppenderCmd::GetStat() const
 {
-    m_state->Flush();
+    return m_stat;
 }
 
-StateWaitEndBlock::StateWaitEndBlock( ObserverBase* ob_base )
-    : IState( ob_base )
+// ===========================================================
+//                  StateWaitEndBlock
+// ===========================================================
+StateWaitEndBlock::StateWaitEndBlock( AppenderCmd* context )
+    : IState(context)
 {
 }
 
-void StateWaitEndBlock::AppendCmd( AppenderCmd* context, const std::string& cmd )
+void StateWaitEndBlock::AppendCmd( const cmd_t& cmd )
 {
     if( cmd == "{" )
     {
@@ -60,7 +94,7 @@ void StateWaitEndBlock::AppendCmd( AppenderCmd* context, const std::string& cmd 
     }
     else if( cmd == "}" )
     {
-        Downlvl( context );
+        Downlvl();
     }
     else
     {
@@ -73,59 +107,58 @@ void StateWaitEndBlock::Uplvl()
     ++m_lvl;
 }
 
-void StateWaitEndBlock::Downlvl( AppenderCmd* context )
+void StateWaitEndBlock::Downlvl()
 {
     --m_lvl;
     if( m_lvl == 0 )
     {
-        if( m_num_cmd > 0 )
+        if( not m_pack_cmd.empty() )
         {
-            AppendPackCmd( m_buffer, m_num_cmd );
-            m_buffer.clear();
+            m_context->NotifyPackCmd( m_pack_cmd, GetTime() );
+            m_pack_cmd.clear();
         }
-        ChangeState( context, context->GetState(AppenderCmd::STATE_WAIT_N_CMD) );
+        ChangeState( m_context->GetState(AppenderCmd::STATE_WAIT_N_CMD) );
         m_lvl = 1; // при следующем вызове
-        m_num_cmd = 0;
     }
 }
 
 void StateWaitEndBlock::CopyCmd( const std::string& cmd )
 {
-    if( m_num_cmd > 0 )
-        m_buffer += ", ";
-    m_buffer += cmd;
-    m_ob->EventAddCmdToBlock( cmd, m_num_cmd );
-    ++m_num_cmd;
+    // Пришла первая комманда, запоминаем время
+    if( m_pack_cmd.empty() )
+        SetTime();
+    m_pack_cmd.push_back( cmd );
+    UpdateCountCmd();
 }
 
-StateWaitNCmd::StateWaitNCmd( ObserverBase* ob_base, size_t N )
-    : IState( ob_base ), m_N(N)
+// ===========================================================
+//                  StateWaitNCmd
+// ===========================================================
+StateWaitNCmd::StateWaitNCmd( AppenderCmd* context, size_t N )
+    : IState(context), m_N(N)
 {
-
 }
 
 StateWaitNCmd::~StateWaitNCmd()
 {
-    if( m_num_cmd > 0 )
-        AppendPackCmd( m_buffer, m_num_cmd );
+    Flush();
 }
 
-void StateWaitNCmd::AppendCmd( AppenderCmd* conext, const std::string& cmd )
+void StateWaitNCmd::AppendCmd( const cmd_t& cmd )
 {
     if( cmd == "{" )
     {
         Flush();
-        ChangeState( conext, conext->GetState(AppenderCmd::STATE_WAIT_END_BLOCK) );
+        ChangeState( m_context->GetState(AppenderCmd::STATE_WAIT_END_BLOCK) );
     }
     else
     {
-        if( m_num_cmd > 0 )
-            m_buffer += ", ";
-        m_buffer += cmd;
-        m_ob->EventAddCmdToBlock( cmd, m_num_cmd );
-        ++m_num_cmd;
+        if( m_pack_cmd.empty() )
+            SetTime();
 
-        if( m_num_cmd >= m_N )
+        m_pack_cmd.push_back( cmd );
+        UpdateCountCmd();
+        if( m_pack_cmd.size() >= m_N )
         {
             Flush();
         }
@@ -134,10 +167,9 @@ void StateWaitNCmd::AppendCmd( AppenderCmd* conext, const std::string& cmd )
 
 void StateWaitNCmd::Flush()
 {
-    if( m_num_cmd == 0 )
+    if( m_pack_cmd.empty() )
         return;
 
-    AppendPackCmd( m_buffer, m_num_cmd );
-    m_buffer.clear();
-    m_num_cmd = 0;
+    m_context->NotifyPackCmd( m_pack_cmd, GetTime() );
+    m_pack_cmd.clear();
 }

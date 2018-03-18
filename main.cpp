@@ -20,12 +20,11 @@ int main( int ac, char* av[] )
     int32_t N = std::atoi(av[1]);
 
     {
-        ConsoleObserver co( N );
+        ConsoleObserver co;
         ThreadObserver to( &co );
         to.Start();
-        FileObserverMT fo( N, 2 );
-        std::unique_ptr<IStreamSubject> s( new IStreamSubject );
-        s->Init( N );
+        FileObserverMT fo( 2 );
+        std::unique_ptr<IStreamSubject> s( new IStreamSubject( N ) );
         s->Attach( &to );
         s->Attach( &fo );
         std::ifstream f( "test_cmd1.txt" );
