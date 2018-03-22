@@ -5,6 +5,7 @@
 #include <memory>
 #include <queue>
 
+/// Потоко-безопасная очередь
 template <class T>
 class threadsafe_queue
 {

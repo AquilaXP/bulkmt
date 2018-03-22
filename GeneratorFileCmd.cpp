@@ -1,4 +1,5 @@
 #include <fstream>
+#include <iomanip>
 
 int main()
 {
@@ -6,7 +7,7 @@ int main()
 
     for( size_t i = 0; i < 10000000; ++i )
     {
-        ostr << i << '\n';
+        ostr << std::setw(100) << std::setfill('0') << i << '\n';
     }
     return 0;
 }

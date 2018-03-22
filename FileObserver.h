@@ -5,7 +5,6 @@
 #include <sstream>
 #include <chrono>
 
-#include "ObserverBase.h"
 #include "IState.h"
 
 /// Наблюдатель сохраняющий в файл

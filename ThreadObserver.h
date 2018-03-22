@@ -6,12 +6,14 @@
 
 #include "IObserver.h"
 #include "threadsafe_queue.h"
+#include "threadsafe_queue_const.h"
 
-/// Класс для запуска слушатяле в отдельном потоке
+/// Wrapper РґР»СЏ Р·Р°РїСѓСЃРєР° СЃР»СѓС€Р°С‚СЏР»Рµ РІ РѕС‚РґРµР»СЊРЅРѕРј РїРѕС‚РѕРєРµ
 class ThreadObserver : public IObserver
 {
 public:
-    ThreadObserver( IObserver* obs ) : m_obs(obs)
+    ThreadObserver( IObserver* obs, size_t depth_queue = (std::numeric_limits<size_t>::max)() )
+        : m_obs( obs ), m_queue_cmd( depth_queue )
     {}
     ~ThreadObserver()
     {
@@ -23,7 +25,6 @@ public:
         if( m_thread.joinable() )
             throw std::runtime_error( "thread runned!" );
 
-        m_stop = false;
         m_thread = std::thread( &ThreadObserver::Run, this );
     }
     IObserver* GetObserver() const
@@ -32,8 +33,7 @@ public:
     }
     void Stop()
     {
-        m_stop = true;
-        m_queue_cmd.push( { pack_cmd_t(), 0 } );
+        m_queue_cmd.wait_and_push( { pack_cmd_t(), 0 } );
     }
     void Wait()
     {
@@ -42,7 +42,7 @@ public:
     }
     void Update( const pack_cmd_t& pack_cmd, uint64_t time_first_cmd_ms ) override
     {
-        m_queue_cmd.push( std::make_pair( pack_cmd, time_first_cmd_ms ) );
+        m_queue_cmd.wait_and_push( std::make_pair( pack_cmd, time_first_cmd_ms ) );
     }
 private:
     void Run()
@@ -52,10 +52,11 @@ private:
             assert( m_obs );
             while( true )
             {
-                auto cmd = m_queue_cmd.wait_and_pop();
-                if( m_stop == true )
+                std::pair<pack_cmd_t, uint64_t> cmd;
+                m_queue_cmd.wait_and_pop( cmd );
+                if( cmd.first.empty() )
                     break;
-                m_obs->Update( cmd->first, cmd->second );
+                m_obs->Update( cmd.first, cmd.second );
             }
         }
         catch( ... )
@@ -64,7 +65,6 @@ private:
     }
 
     IObserver* m_obs = nullptr;
-    std::atomic_bool m_stop = { false };
     std::thread m_thread;
-    threadsafe_queue<std::pair<pack_cmd_t, uint64_t>> m_queue_cmd;
+    threadsafe_queue_const<std::pair<pack_cmd_t, uint64_t>> m_queue_cmd;
 };

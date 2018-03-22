@@ -17,6 +17,7 @@ set(HDR
     IObserver.h
     ISubject.h
     threadsafe_queue.h
+    threadsafe_queue_const.h
     ConsoleObserver.h
     FileObserver.h
     Statistic.h

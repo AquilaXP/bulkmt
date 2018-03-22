@@ -10,13 +10,15 @@
 
 #include "Statistic.h"
 #include "threadsafe_queue.h"
+#include "threadsafe_queue_const.h"
 #include "IState.h"
 
 /// Наблюдатель сохраняющий в файл
 class FileObserverMT : public IObserver
 {
 public:
-    FileObserverMT( size_t count_thread )
+    FileObserverMT( size_t count_thread, size_t depth_queue = (std::numeric_limits<size_t>::max)() )
+        : m_pack_cmd( depth_queue )
     {
         std::generate_n( std::back_inserter( m_assistans ),
             count_thread, [this]{return std::thread( &FileObserverMT::RunT, this ); } );
@@ -34,7 +36,7 @@ public:
         // каждый поток возьмет по паку команд и остановится
         for( auto& a : m_assistans )
         {
-            m_pack_cmd.push( std::make_tuple( pack_cmd_t(), 0 ) );
+            m_pack_cmd.wait_and_push( std::make_pair( pack_cmd_t(), 0 ) );
         }
         // ждем завершения всех потоков
         for( auto& a : m_assistans )
@@ -45,7 +47,7 @@ public:
     }
     void Update( const pack_cmd_t& pack_cmd, uint64_t time_first_cmd_ms ) override
     {
-        m_pack_cmd.push( std::make_tuple( pack_cmd, time_first_cmd_ms ) );
+        m_pack_cmd.wait_and_push( std::make_pair( pack_cmd, time_first_cmd_ms ) );
     }
     void SetBurden( std::function<void()> b )
     {
@@ -71,20 +73,23 @@ private:
             }
             while( true )
             {
-                auto p = m_pack_cmd.wait_and_pop();
-                if( std::get<0>( *p ).empty() )
+                std::pair < pack_cmd_t, uint64_t > p;
+                m_pack_cmd.wait_and_pop( p );
+                if( std::get<0>(p).empty() )
                     break;
 
                 if( m_burden )
+                {
                     m_burden();
+                }
                 // Обновляем статистику потока
                 count_block += 1;
-                count_cmd += std::get<0>( *p ).size();
+                count_cmd += std::get<0>( p ).size();
 
                 // формируем полное имя файла
                 name_file.clear();
                 name_file += "bulk";
-                name_file += std::to_string( std::get<1>( *p ) );
+                name_file += std::to_string( std::get<1>( p ) );
                 name_file += "_";
                 name_file += thread_id;
                 name_file += "_" + std::to_string( unique_number );
@@ -93,12 +98,12 @@ private:
 
                 // записываем пак комманд
                 std::ofstream f( name_file, std::ios::binary );
-                PrintPackCmd( f, std::get<0>( *p ) );
+                PrintPackCmd( f, std::get<0>( p ) );
             }
 
             /// Выводим статистику потока
             std::stringstream ss;
-            ss << "Thread file "<< std::this_thread::get_id() <<  ":\n" <<
+            ss << "Thread file " << std::this_thread::get_id() << ":\n" <<
                 "Count block = " << count_block << '\n' <<
                 "Count cmd = " << count_cmd << '\n';
             std::cout << ss.str();
@@ -110,6 +115,6 @@ private:
 
     std::function<void()> m_burden;
     std::vector<std::thread> m_assistans;
-    // храним в очереди: число комманд в паке, время первой комманыд,  пак комманд
-    threadsafe_queue < std::tuple < pack_cmd_t, uint64_t > > m_pack_cmd;
+    // храним в очереди: число пак комманд, время первой комманыд
+    threadsafe_queue_const < std::pair < pack_cmd_t, uint64_t > > m_pack_cmd;
 };
