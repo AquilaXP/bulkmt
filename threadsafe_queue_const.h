@@ -97,7 +97,7 @@ public:
 
     std::unique_ptr<T> try_pop()
     {
-        std::unique_ptr<T> res
+        std::unique_ptr<T> res;
         {
             lock_m lk( mut );
             if( data_queue.empty() )
