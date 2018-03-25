@@ -9,17 +9,19 @@
 #include "ConsoleObserver.h"
 #include "ThreadObserver.h"
 
+using namespace std::chrono;
+
 struct guard_time
 {
-    guard_time( std::chrono::time_point<std::chrono::steady_clock>& t )
+    guard_time( time_point<high_resolution_clock>& t )
         : m_t( t )
     {}
     ~guard_time()
     {
-        m_t = std::chrono::high_resolution_clock::now();
+        m_t = time_point_cast<milliseconds>( high_resolution_clock::now() );
     }
 private:
-    std::chrono::time_point<std::chrono::steady_clock>& m_t;
+    time_point<high_resolution_clock>& m_t;
 };
 
 volatile size_t v = 0;
@@ -41,8 +43,8 @@ int main( int ac, char* av[] )
             v++;
     };
 
-    auto b = std::chrono::high_resolution_clock::now();
-    std::chrono::time_point<std::chrono::steady_clock> emain;
+    auto b = high_resolution_clock::now();
+    time_point<high_resolution_clock> emain;
     {
         const size_t count_thread = T;
         FileObserverMT file_observer( count_thread, count_thread );
@@ -53,9 +55,9 @@ int main( int ac, char* av[] )
         std::ifstream f( "test_cmd.txt" );
         s.Run( f );
     }
-    auto e = std::chrono::high_resolution_clock::now();
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>( emain - b ).count() << std::endl;
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>( e - b ).count() << std::endl;
+    auto e = high_resolution_clock::now();
+    std::cout << duration_cast<milliseconds>( emain - b ).count() << std::endl;
+    std::cout << duration_cast<milliseconds>( e - b ).count() << std::endl;
 
     return 0;
 }
