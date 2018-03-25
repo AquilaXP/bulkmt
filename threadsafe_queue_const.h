@@ -6,6 +6,7 @@
 #include <queue>
 
 /// Потоко-безопасная очередь с фиксированным размером
+/// #TODO: заменить на boost::circular_buffer
 template <class T>
 class threadsafe_queue_const
 {
@@ -27,7 +28,14 @@ public:
         lock_m lk( other.mut );
         data_queue = other.data_queue;
     }
-
+    void set_max_size( size_t size )
+    {
+        {
+            lock_m lk( mut );
+            max_size = size;
+        }
+        data_cond_push.notify_one();
+    }
     void wait_and_push( T new_value )
     {
         {

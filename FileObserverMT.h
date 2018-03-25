@@ -25,24 +25,34 @@ public:
     }
     ~FileObserverMT()
     {
-        if( m_assistans.empty() )
-            return;
-
-        // Ждем пока все потоки не опустошат задания по записи
-        while( not m_pack_cmd.empty() )
-            std::this_thread::sleep_for( std::chrono::seconds( 0 ) );
-
-        // начинаем остановку всех потоков,
-        // каждый поток возьмет по паку команд и остановится
-        for( auto& a : m_assistans )
+        try
         {
-            m_pack_cmd.wait_and_push( std::make_pair( pack_cmd_t(), 0 ) );
+            if( m_assistans.empty() )
+                return;
+
+            // Ждем пока все потоки не опустошат задания по записи
+            while( not m_pack_cmd.empty() )
+                std::this_thread::sleep_for( std::chrono::seconds( 0 ) );
+
+            // расширяем очередь, чтобы все сообщения были вставлены без проблем.
+            // Если размер очереди будет меньше, чем умерших потоков, то невозможно будет вставить сообщение и будем вечно ждать!
+            m_pack_cmd.set_max_size( m_assistans.size() );
+            // начинаем остановку всех потоков,
+            // каждый поток возьмет по паку команд и остановится
+            for( auto& a : m_assistans )
+            {
+                m_pack_cmd.wait_and_push( std::make_pair( pack_cmd_t(), 0 ) );
+            }
+            // ждем завершения всех потоков
+            for( auto& a : m_assistans )
+            {
+                if( a.joinable() )
+                    a.join();
+            }
         }
-        // ждем завершения всех потоков
-        for( auto& a : m_assistans )
+        catch( ... )
         {
-            if( a.joinable() )
-                a.join();
+            std::cerr << "Incorect stoped!\n";
         }
     }
     void Update( const pack_cmd_t& pack_cmd, uint64_t time_first_cmd_ms ) override
