@@ -28,8 +28,8 @@ private:
     {
         std::stringstream ss;
         ss << "Console:\n" <<
-            "Count cmd = " << m_count_cmd << '\n' <<
-            "Count block = " << m_count_block << '\n';
+            "Count block = " << m_count_block << '\n' <<
+            "Count cmd = " << m_count_cmd << '\n';
         std::cout << ss.str();
     }
 
